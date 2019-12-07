@@ -21,7 +21,7 @@ def get_ip(host):
 		else:
 			return socket.gethostbyname(host)
 	except socket.gaierror:
-		sys.exit("Hosts IP address was not retrievable.")
+		sys.exit("Host's IP address was not retrievable.")
 
 host = get_ip(args.host)
 
