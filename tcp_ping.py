@@ -7,6 +7,8 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("host", action="store", help="Host to connect to")
 parser.add_argument("-port", "-p", type=int, required=True, help="Which port to connect with")
+parser.add_argument("-num", "-n", type=int, default=4, help="Amount of times to probe the host")
+parser.add_argument("-loop", "-l", default=False, action="store_true", help="Constantly pinging the host (Even if number specified)")
 parser.add_argument("-ipv4", "-4", default=True, action="store_true", help="Uses IPv4")
 parser.add_argument("-ipv6", "-6", default=False, action="store_true", help="Uses IPv6")
 
@@ -25,14 +27,28 @@ def get_ip(host):
 
 host = get_ip(args.host)
 
-while True:
+def create_sock():
+	if args.ipv6:
+		sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+		data = (host, args.port, 0, 0)
+	elif args.ipv4:
+		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		data = (host, args.port)
+
+	return sock, data
+
+i = 0
+
+if args.host != host:
+	print("Starting to probe {} ({}) on port {}".format(args.host, host, args.port))
+else:
+	print("Starting to probe {} on port {}".format(args.host, args.port))
+
+while i < args.num:
 	try:
-		if args.ipv6:
-			sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-			data = (host, args.port, 0, 0)
-		elif args.ipv4:
-			sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			data = (host, args.port)
+		if not args.loop: i += 1
+
+		sock, data = create_sock()
 
 		sock.settimeout(3)
 
@@ -44,9 +60,11 @@ while True:
 
 		if resp == 0:
 			print("Probing {}:{}/TCP - Port is open | Time={}ms".format(host, args.port, stop))
+			if i == args.num: break
 			time.sleep(1)
 		else:
 			print("Probing {}:{}/TCP - Port is closed".format(host, args.port))
+			if i == args.num: break
 			time.sleep(3)
 
 		sock.close()
