@@ -8,13 +8,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument("host", action="store", help="Host to connect to")
 parser.add_argument("-port", "-p", type=int, required=True, help="Which port to connect with")
 parser.add_argument("-num", "-n", type=int, default=4, help="Amount of times to probe the host")
-parser.add_argument("-timeout", "-t", type=int, default=3, help="How long we should try to connect until it returns an error")
-parser.add_argument("-sleep", "-s", type=int, default=1, help="Delay until next TCP request")
+parser.add_argument("-timeout", "-t", type=int, default=3000, help="How long we should try to connect for until it returns an error (MS)")
+parser.add_argument("-sleep", "-s", type=int, default=1000, help="Delay until next TCP request (MS)")
 parser.add_argument("-loop", "-l", default=False, action="store_true", help="Constantly pinging the host (Even if number specified)")
 parser.add_argument("-ipv4", "-4", default=True, action="store_true", help="Uses IPv4")
 parser.add_argument("-ipv6", "-6", default=False, action="store_true", help="Uses IPv6")
 
 args = parser.parse_args()
+
+args.timeout /= 1000
+args.sleep /= 1000
 
 def get_ip(host):
 	try:
