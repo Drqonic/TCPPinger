@@ -8,6 +8,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("host", action="store", help="Host to connect to")
 parser.add_argument("-port", "-p", type=int, required=True, help="Which port to connect with")
 parser.add_argument("-num", "-n", type=int, default=4, help="Amount of times to probe the host")
+parser.add_argument("-timeout", "-t", type=int, default=3, help="How long we should try to connect until it returns an error")
+parser.add_argument("-sleep", "-s", type=int, default=1, help="Delay until next TCP request")
 parser.add_argument("-loop", "-l", default=False, action="store_true", help="Constantly pinging the host (Even if number specified)")
 parser.add_argument("-ipv4", "-4", default=True, action="store_true", help="Uses IPv4")
 parser.add_argument("-ipv6", "-6", default=False, action="store_true", help="Uses IPv6")
@@ -50,7 +52,7 @@ while i < args.num:
 
 		sock, data = create_sock()
 
-		sock.settimeout(3)
+		sock.settimeout(args.timeout)
 
 		start = time.time() * 1000
 		
@@ -61,15 +63,15 @@ while i < args.num:
 		if resp == 0:
 			print("Probing {}:{}/TCP - Port is open | Time={}ms".format(host, args.port, stop))
 			if i == args.num: break
-			time.sleep(1)
+			time.sleep(args.sleep)
 		else:
 			print("Probing {}:{}/TCP - Port is closed".format(host, args.port))
 			if i == args.num: break
-			time.sleep(3)
+			time.sleep(args.sleep)
 
 		sock.close()
 	except socket.error:
 		print("Socket failure...")
-		time.sleep(3)
+		time.sleep(args.sleep)
 	except KeyboardInterrupt:
 		break
