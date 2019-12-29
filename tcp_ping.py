@@ -3,6 +3,7 @@ import time
 import socket
 import random
 import argparse
+import threading
 
 parser = argparse.ArgumentParser()
 parser.add_argument("host", action="store", help="Host to connect to")
@@ -49,32 +50,37 @@ if args.host != host:
 else:
 	print("Starting to probe {} on port {}".format(args.host, args.port))
 
+def probe():
+	while True:
+		try:
+			sock, data = create_sock()
+
+			sock.settimeout(args.timeout)
+
+			start = time.time() * 1000
+			
+			resp = sock.connect_ex(data)
+
+			stop = int(time.time() * 1000 - start)
+
+			if resp == 0:
+				print("Probing {}:{}/TCP - Port is open | Time={}ms".format(host, args.port, stop))
+				time.sleep(args.sleep)
+			else:
+				print("Probing {}:{}/TCP - Port is closed".format(host, args.port))
+				time.sleep(args.sleep)
+
+			sock.close()
+		except socket.error:
+			print("Socket failure...")
+			time.sleep(args.sleep)
+
+threading.Thread(target=probe, daemon=True).start()
+
 while i < args.num:
 	try:
 		if not args.loop: i += 1
-
-		sock, data = create_sock()
-
-		sock.settimeout(args.timeout)
-
-		start = time.time() * 1000
 		
-		resp = sock.connect_ex(data)
-
-		stop = int(time.time() * 1000 - start)
-
-		if resp == 0:
-			print("Probing {}:{}/TCP - Port is open | Time={}ms".format(host, args.port, stop))
-			if i == args.num: break
-			time.sleep(args.sleep)
-		else:
-			print("Probing {}:{}/TCP - Port is closed".format(host, args.port))
-			if i == args.num: break
-			time.sleep(args.sleep)
-
-		sock.close()
-	except socket.error:
-		print("Socket failure...")
-		time.sleep(args.sleep)
+		time.sleep(1)
 	except KeyboardInterrupt:
 		break
