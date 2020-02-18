@@ -65,10 +65,10 @@ class TCPPinger(threading.Thread):
 				
 				resp = sock.connect_ex(data)
 
-				stop = int(time.time() * 1000 - start)
+				now = int(time.time() * 1000 - start)
 
 				if resp == 0:
-					print("Probing {}:{}/TCP - Port is open | Time={}ms".format(host, args.port, stop))
+					print("Probing {}:{}/TCP - Port is open | Time={}ms".format(host, args.port, now))
 					time.sleep(args.sleep)
 				else:
 					print("Probing {}:{}/TCP - Port is closed".format(host, args.port))
