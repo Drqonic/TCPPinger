@@ -50,37 +50,44 @@ if args.host != host:
 else:
 	print("Starting to probe {} on port {}".format(args.host, args.port))
 
-def probe():
-	while True:
+class TCPPinger(threading.Thread):
+	def __init__(self):
+		threading.Thread.__init__(self)
+
+	def run(self):
+		while True:
+			try:
+				sock, data = create_sock()
+
+				sock.settimeout(args.timeout)
+
+				start = time.time() * 1000
+				
+				resp = sock.connect_ex(data)
+
+				stop = int(time.time() * 1000 - start)
+
+				if resp == 0:
+					print("Probing {}:{}/TCP - Port is open | Time={}ms".format(host, args.port, stop))
+					time.sleep(args.sleep)
+				else:
+					print("Probing {}:{}/TCP - Port is closed".format(host, args.port))
+					time.sleep(args.sleep)
+
+				sock.close()
+			except socket.error:
+				print("Socket failure...")
+				time.sleep(args.sleep)
+
+if __name__ == "__main__":
+	pinger = TCPPinger()
+	pinger.setDaemon(True)
+	pinger.start()
+	
+	while i < args.num:
 		try:
-			sock, data = create_sock()
-
-			sock.settimeout(args.timeout)
-
-			start = time.time() * 1000
+			if not args.loop: i += 1
 			
-			resp = sock.connect_ex(data)
-
-			stop = int(time.time() * 1000 - start)
-
-			if resp == 0:
-				print("Probing {}:{}/TCP - Port is open | Time={}ms".format(host, args.port, stop))
-				time.sleep(args.sleep)
-			else:
-				print("Probing {}:{}/TCP - Port is closed".format(host, args.port))
-				time.sleep(args.sleep)
-
-			sock.close()
-		except socket.error:
-			print("Socket failure...")
-			time.sleep(args.sleep)
-
-threading.Thread(target=probe, daemon=True).start()
-
-while i < args.num:
-	try:
-		if not args.loop: i += 1
-		
-		time.sleep(1)
-	except KeyboardInterrupt:
-		break
+			time.sleep(1)
+		except KeyboardInterrupt:
+			break
