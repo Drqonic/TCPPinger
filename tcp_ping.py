@@ -1,93 +1,93 @@
-import sys
-import time
-import socket
-import random
 import argparse
+import random
+import socket
+import sys
 import threading
+import time
 
-parser = argparse.ArgumentParser()
-parser.add_argument("host", action="store", help="Host to connect to")
-parser.add_argument("-port", "-p", type=int, required=True, help="Which port to connect with")
-parser.add_argument("-num", "-n", type=int, default=4, help="Amount of times to probe the host")
-parser.add_argument("-timeout", "-t", type=int, default=3000, help="How long we should try to connect for until it returns an error (MS)")
-parser.add_argument("-sleep", "-s", type=int, default=1000, help="Delay until next TCP request (MS)")
-parser.add_argument("-loop", "-l", default=False, action="store_true", help="Constantly pinging the host (Even if number specified)")
-parser.add_argument("-ipv4", "-4", default=True, action="store_true", help="Uses IPv4")
-parser.add_argument("-ipv6", "-6", default=False, action="store_true", help="Uses IPv6")
 
-args = parser.parse_args()
-
-args.timeout /= 1000
-args.sleep /= 1000
-
-def get_ip(host):
+def get_ip(host, family=socket.AF_INET):
 	try:
-		if args.ipv6:
+		if family == socket.AF_INET6:
 			return socket.getaddrinfo(host, None, socket.AF_INET6)[0][4][0]
-		elif args.ipv4:
+
+		if family == socket.AF_INET:
 			return socket.getaddrinfo(host, None, socket.AF_INET)[0][4][0]
-		else:
-			return socket.gethostbyname(host)
+
+		return socket.gethostbyname(host)
 	except socket.gaierror:
-		sys.exit("Hosts IP address was not retrievable.")
+		sys.exit("Host's IP address was not retrievable.")
 
-host = get_ip(args.host)
-
-def create_sock():
-	if args.ipv6:
-		sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-		data = (host, args.port, 0, 0)
-	elif args.ipv4:
-		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		data = (host, args.port)
-
-	return sock, data
-
-i = 0
-
-if args.host != host:
-	print("Starting to probe {} ({}) on port {}".format(args.host, host, args.port))
-else:
-	print("Starting to probe {} on port {}".format(args.host, args.port))
 
 class TCPPinger(threading.Thread):
-	def __init__(self):
+	def __init__(self, host, port, quantity=4, timeout=3000, sleep=1000, family=socket.AF_INET):
 		threading.Thread.__init__(self)
 
-	def run(self):
-		while True:
-			try:
-				sock, data = create_sock()
+		self.host = host
+		self.port = port
+		self.quantity = quantity
+		self.timeout = timeout / 1000
+		self.sleep = sleep / 1000
+		self.family = family
 
-				sock.settimeout(args.timeout)
+	def run(self):
+		amount_looped = 0
+
+		while amount_looped < self.quantity or self.quantity == -1:
+			try:
+				addr = (get_ip(self.host), self.port)
+				
+				if family == socket.AF_INET6:
+					addr += (0, 0)
+
+				sock = socket.socket(self.family, socket.SOCK_STREAM)
+				sock.settimeout(self.timeout)
 
 				start = time.time() * 1000
-				
-				resp = sock.connect_ex(data)
 
-				now = int(time.time() * 1000 - start)
+				if sock.connect_ex(addr) == 0:
+					now = int(time.time() * 1000 - start)
 
-				if resp == 0:
-					print("Probing {}:{}/TCP - Port is open | Time={}ms".format(host, args.port, now))
-					time.sleep(args.sleep)
+					print("Probing {}:{}/TCP - Port is open | Time={}ms".format(self.host, self.port, now))
 				else:
-					print("Probing {}:{}/TCP - Port is closed".format(host, args.port))
-					time.sleep(args.sleep)
+					print("Probing {}:{}/TCP - Port is closed".format(self.host, self.port))
 
 				sock.close()
 			except socket.error:
 				print("Socket failure...")
-				time.sleep(args.sleep)
+			finally:
+				amount_looped += 1
+				time.sleep(self.sleep)
+				
 
 if __name__ == "__main__":
-	pinger = TCPPinger()
-	pinger.setDaemon(True)
+	parser = argparse.ArgumentParser()
+	parser.add_argument("host", action="store", help="Host to connect to")
+	parser.add_argument("-port", "-p", type=int, required=True, help="Which port to connect with")
+	parser.add_argument("-num", "-n", type=int, default=4, help="Amount of times to probe the host")
+	parser.add_argument("-timeout", "-t", type=int, default=3000, help="How long we should try to connect for until it returns an error (MS)")
+	parser.add_argument("-sleep", "-s", type=int, default=1000, help="Delay until next TCP request (MS)")
+	parser.add_argument("-loop", "-l", default=False, action="store_true", help="Constantly pinging the host (Even if number specified)")
+	parser.add_argument("-ipv4", "-4", default=True, action="store_true", help="Uses IPv4")
+	parser.add_argument("-ipv6", "-6", default=False, action="store_true", help="Uses IPv6")
+
+	args = parser.parse_args()
+
+	if args.ipv6 is True:
+		family = socket.AF_INET6
+
+	if args.ipv4 is True:
+		family = socket.AF_INET
+
+	if args.loop is True:
+		args.num = -1
+
+	host = get_ip(args.host, family)
+
+	if args.host != host:
+		print("Starting to probe {} ({}) on port {}".format(args.host, host, args.port))
+	else:
+		print("Starting to probe {} on port {}".format(args.host, args.port))
+
+	pinger = TCPPinger(host, args.port, args.num, args.timeout, args.sleep, family)
 	pinger.start()
-	
-	while i < args.num:
-		try:
-			if not args.loop: i += 1
-			
-			time.sleep(1)
-		except KeyboardInterrupt:
-			break
