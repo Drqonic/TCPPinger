@@ -23,7 +23,7 @@ class TCPPinger(threading.Thread):
 	def __init__(self, host, port, quantity=4, timeout=3000, sleep=1000, family=socket.AF_INET):
 		threading.Thread.__init__(self)
 
-		self.host = host
+		self.host = get_ip(host)
 		self.port = port
 		self.quantity = quantity
 		self.timeout = timeout / 1000
@@ -35,7 +35,7 @@ class TCPPinger(threading.Thread):
 
 		while amount_looped < self.quantity or self.quantity == -1:
 			try:
-				addr = (get_ip(self.host), self.port)
+				addr = (self.host, self.port)
 				
 				if self.family == socket.AF_INET6:
 					addr += (0, 0)
