@@ -37,7 +37,7 @@ class TCPPinger(threading.Thread):
 			try:
 				addr = (get_ip(self.host), self.port)
 				
-				if family == socket.AF_INET6:
+				if self.family == socket.AF_INET6:
 					addr += (0, 0)
 
 				sock = socket.socket(self.family, socket.SOCK_STREAM)
