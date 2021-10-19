@@ -58,7 +58,6 @@ class TCPPinger(threading.Thread):
 	run()
 		Probes the host using all the necessary attributes while sharing the
 		response time.
-		
 	"""
 
 	def __init__(
