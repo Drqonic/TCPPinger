@@ -127,8 +127,10 @@ class TCPPinger(threading.Thread):
 				print("Socket failure...")
 			finally:
 				amount_looped += 1
-				time.sleep(self.sleep)
-				
+
+				if amount_looped != self.quantity:
+					time.sleep(self.sleep)
+					
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
