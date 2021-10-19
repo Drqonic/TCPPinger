@@ -7,20 +7,80 @@ import time
 
 
 def get_ip(host, family=socket.AF_INET):
-	try:
-		if family == socket.AF_INET6:
-			return socket.getaddrinfo(host, None, socket.AF_INET6)[0][4][0]
+	"""
+	A method used to obtain the IP address from the domain name.
 
+	Parameters
+	----------
+	host : str
+		The host that should be converted to its IP address.
+	family : AddressFamily, optional
+		Determines the format of the address structure to be used on the socket.
+
+	Returns
+	-------
+	str
+		The IP address of the converted domain name.
+	"""
+
+	try:
 		if family == socket.AF_INET:
 			return socket.getaddrinfo(host, None, socket.AF_INET)[0][4][0]
 
+		if family == socket.AF_INET6:
+			return socket.getaddrinfo(host, None, socket.AF_INET6)[0][4][0]
+
 		return socket.gethostbyname(host)
 	except socket.gaierror:
-		sys.exit("Host's IP address was not retrievable.")
+		sys.exit("The host's IP address was not retrievable.")
 
 
 class TCPPinger(threading.Thread):
+	"""
+	A class used to probe the connectivity and response time of a specified
+	host.
+
+	Attributes
+	----------
+	host : str
+		Host to connect to.
+	port : int
+		Which port to connect with.
+	quantity : int
+		Amount of times to probe the host (-1 for infinitely).
+	timeout : int
+		How long we should try to connect for until it returns an error (MS).
+	sleep : int
+		Delay until next TCP request (MS).
+	family : AddressFamily
+		Determines the format of the address structure to be used on the socket.
+
+	Methods
+	-------
+	run()
+		Probes the host using all the necessary attributes while sharing the
+		response time.
+		
+	"""
+
 	def __init__(self, host, port, quantity=4, timeout=3000, sleep=1000, family=socket.AF_INET):
+		"""
+		Parameters
+		----------
+		host : str
+			Host to connect to.
+		port : int
+			Which port to connect with.
+		quantity : int
+			Amount of times to probe the host (-1 for infinitely).
+		timeout : int
+			How long we should try to connect for until it returns an error (MS).
+		sleep : int
+			Delay until next TCP request (MS).
+		family : AddressFamily
+			Determines the format of the address structure to be used on the socket.
+		"""
+		
 		threading.Thread.__init__(self)
 
 		self.host = get_ip(host)
@@ -31,6 +91,21 @@ class TCPPinger(threading.Thread):
 		self.family = family
 
 	def run(self):
+		"""
+		Attributes
+		----------
+		amount_looped : int
+			A record of how many times we have probed the host.
+		addr : tuple
+			A combination of the host and port together
+		sock : socket.socket
+			An endpoint we will use to connect to the host.
+		start : float
+			The current time of which we started probing the host.
+		now : float
+			The amount of time took trying to connect to the host.
+		"""
+
 		amount_looped = 0
 
 		while amount_looped < self.quantity or self.quantity == -1:
@@ -73,11 +148,11 @@ if __name__ == "__main__":
 
 	args = parser.parse_args()
 
-	if args.ipv6 is True:
-		family = socket.AF_INET6
-
 	if args.ipv4 is True:
 		family = socket.AF_INET
+	
+	if args.ipv6 is True:
+		family = socket.AF_INET6
 
 	if args.loop is True:
 		args.num = -1
