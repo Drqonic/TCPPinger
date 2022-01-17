@@ -102,7 +102,7 @@ class TCPPinger(threading.Thread):
 		This is the main method that is used for pinging the host.
 		"""
 
-		while self.amount_looped < self.quantity or self.quantity == -1 and self.finished is False:
+		while (self.amount_looped < self.quantity or self.quantity == -1) and self.finished is False:
 			try:
 				addr = (self.host, self.port)
 				
