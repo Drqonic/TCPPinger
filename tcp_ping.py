@@ -61,8 +61,8 @@ class TCPPinger(threading.Thread):
 	"""
 
 	def __init__(
-		self, host, port,
-		quantity=4, timeout=3000, sleep=1000,
+		self, host, port, 
+		quantity=4, timeout=3000, sleep=1000, 
 		family=socket.AF_INET
 	):
 		"""
@@ -91,14 +91,18 @@ class TCPPinger(threading.Thread):
 		self.sleep = sleep / 1000
 		self.family = family
 
+		self.finished = False
+		
+		self.amount_looped = 0
+		self.successful_pings = 0
+		self.failed_pings = 0
+
 	def run(self):
 		"""
 		This is the main method that is used for pinging the host.
 		"""
-		
-		amount_looped = 0
 
-		while amount_looped < self.quantity or self.quantity == -1:
+		while self.amount_looped < self.quantity or self.quantity == -1 and self.finished is False:
 			try:
 				addr = (self.host, self.port)
 				
@@ -111,80 +115,96 @@ class TCPPinger(threading.Thread):
 				start = time.time() * 1000
 
 				if sock.connect_ex(addr) == 0:
+					self.successful_pings += 1
+
 					now = int(time.time() * 1000 - start)
 
 					print("Probing {}:{}/TCP - Port is open | Time={}ms".format(
 						self.host, self.port, now
 					))
 				else:
+					self.failed_pings += 1
+
 					print("Probing {}:{}/TCP - Port is closed".format(
 						self.host, self.port
 					))
 
 				sock.close()
 			except socket.error:
+				self.failed_pings += 1
+
 				print("Socket failure...")
 			finally:
-				amount_looped += 1
+				self.amount_looped += 1
 
-				if amount_looped != self.quantity:
+				if self.amount_looped != self.quantity:
 					time.sleep(self.sleep)
-					
+
+	def stop(self):
+		self.finished = True
+
+	def ping_stats(self):
+		return {
+			"total": self.amount_looped, 
+			"successful": self.successful_pings, 
+			"failed": self.failed_pings
+		}
+
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument(
-		"host",
-		action="store",
+		"host", 
+		action="store", 
 		help="Host to connect to"
 	)
 	parser.add_argument(
-		"-port",
-		"-p",
-		type=int,
-		required=True,
+		"-port", 
+		"-p", 
+		type=int, 
+		required=True, 
 		help="Which port to connect with"
 	)
 	parser.add_argument(
-		"-num",
-		"-n",
-		type=int,
-		default=4,
+		"-num", 
+		"-n", 
+		type=int, 
+		default=4, 
 		help="Amount of times to probe the host"
 	)
 	parser.add_argument(
-		"-timeout",
-		"-t",
-		type=int,
-		default=3000,
+		"-timeout", 
+		"-t", 
+		type=int, 
+		default=3000, 
 		help="How long we should try to connect for until it returns an error (MS)"
 	)
 	parser.add_argument(
-		"-sleep",
-		"-s",
-		type=int,
-		default=1000,
+		"-sleep", 
+		"-s", 
+		type=int, 
+		default=1000, 
 		help="Delay until next TCP request (MS)"
 	)
 	parser.add_argument(
-		"-loop",
-		"-l",
-		default=False,
-		action="store_true",
+		"-loop", 
+		"-l", 
+		default=False, 
+		action="store_true", 
 		help="Constantly pinging the host (Even if number specified)"
 	)
 	parser.add_argument(
-		"-ipv4",
-		"-4",
-		default=True,
-		action="store_true",
+		"-ipv4", 
+		"-4", 
+		default=True, 
+		action="store_true", 
 		help="Uses IPv4"
 	)
 	parser.add_argument(
-		"-ipv6",
-		"-6",
-		default=False,
-		action="store_true",
+		"-ipv6", 
+		"-6", 
+		default=False, 
+		action="store_true", 
 		help="Uses IPv6"
 	)
 
@@ -210,8 +230,14 @@ if __name__ == "__main__":
 		print("Starting to probe {} on port {}".format(args.host, args.port))
 
 	pinger = TCPPinger(
-		host, args.port,
-		args.num, args.timeout, args.sleep,
+		host, args.port, 
+		args.num, args.timeout, args.sleep, 
 		family
 	)
 	pinger.start()
+
+	input()
+
+	pinger.stop()
+
+	print(pinger.ping_stats())
