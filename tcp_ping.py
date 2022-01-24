@@ -109,27 +109,25 @@ class TCPPinger(threading.Thread):
 				if self.family == socket.AF_INET6:
 					addr += (0, 0)
 
-				sock = socket.socket(self.family, socket.SOCK_STREAM)
-				sock.settimeout(self.timeout)
+				with socket.socket(self.family, socket.SOCK_STREAM) as sock:
+					sock.settimeout(self.timeout)
 
-				start = time.time() * 1000
+					start = time.time() * 1000
 
-				if sock.connect_ex(addr) == 0:
-					self.successful_pings += 1
+					if sock.connect_ex(addr) == 0:
+						self.successful_pings += 1
 
-					now = int(time.time() * 1000 - start)
+						now = int(time.time() * 1000 - start)
 
-					print("Probing {}:{}/TCP - Port is open | Time={}ms".format(
-						self.host, self.port, now
-					))
-				else:
-					self.failed_pings += 1
+						print("Probing {}:{}/TCP - Port is open | Time={}ms".format(
+							self.host, self.port, now
+						))
+					else:
+						self.failed_pings += 1
 
-					print("Probing {}:{}/TCP - Port is closed".format(
-						self.host, self.port
-					))
-
-				sock.close()
+						print("Probing {}:{}/TCP - Port is closed".format(
+							self.host, self.port
+						))
 			except socket.error:
 				self.failed_pings += 1
 
@@ -236,8 +234,9 @@ if __name__ == "__main__":
 	)
 	pinger.start()
 
-	input()
-
-	pinger.stop()
+	try:
+		input()
+	finally:
+		pinger.stop()
 
 	print(pinger.ping_stats())
