@@ -112,12 +112,12 @@ class TCPPinger(threading.Thread):
 				with socket.socket(self.family, socket.SOCK_STREAM) as sock:
 					sock.settimeout(self.timeout)
 
-					start = time.time() * 1000
+					start = time.perf_counter() * 1000
 
 					if sock.connect_ex(addr) == 0:
 						self.successful_pings += 1
 
-						now = int(time.time() * 1000 - start)
+						now = int(time.perf_counter() * 1000 - start)
 
 						print("Probing {}:{}/TCP - Port is open | Time={}ms".format(
 							self.host, self.port, now
